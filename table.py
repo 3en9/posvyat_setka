@@ -7,7 +7,7 @@ today = dt.date()
 time = dt.time()
 
 
-df = pd.read_excel(r'C:\Users\Лиза\Downloads\СЕТКА.xlsx', sheet_name = 'ЛИЧНЫЕ СЕТКИ')
+df = pd.read_excel(r'СЕТКА.xlsx', sheet_name = 'ЛИЧНЫЕ СЕТКИ')
 n = 97 #количество значимых строк(кол-во оргов + первые 2)
 
 arr = df.to_numpy()

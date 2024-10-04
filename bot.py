@@ -1,13 +1,10 @@
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, CallbackContext, JobQueue
-from datetime import datetime, timedelta
-import asyncio
 from table import *
 from info_psrticipants import *
 
-
 main_keyboard = [['Мое расписание', 'Расписание других организаторов', 'Информация об участнике']]
-                 # ,['Подключить напоминания', 'Отключить напоминания']]
+                 # ['Подключить напоминания', 'Отключить напоминания']]
 my_schedule_keyboard = [['Текущая точка', 'Дальнейшее расписание', 'Все расписание'], ['Назад']]
 organizers_schedule_keyboard = [['Расписание всего отдела', 'Расписание конкретного организатора'], ['Назад']]
 organizers_info_keyboard = [['По фамилии', 'По нику в ТГ'], ['Назад']]
@@ -15,8 +12,26 @@ participant_info_keyboard = [['По фамилии', 'По нику в ТГ', '�
 
 reminder_users = []
 
+def get_user_id(user_tag: str):
+    user_id = 0
+    with open('users.txt') as f:
+        data = f.read().split('\n')
+        for i in data:
+            try:
+                tag, tag_id = i.split()
+                tag_id = int(tag_id)
+                if tag == user_tag:
+                    user_id = tag_id
+                    break
+            except:
+                break
+    return user_id
 
 async def start(update: Update, context: CallbackContext) -> None:
+    user_id, user_tag = update.message.from_user.id, update.message.from_user.username
+    if get_user_id(user_tag) == 0:
+        with open('users.txt', 'a') as file:
+            file.writelines(str(user_tag) + ' ' + str(user_id) + '\n')
     await update.message.reply_text(
         "Мяу:",
         reply_markup=ReplyKeyboardMarkup(main_keyboard, one_time_keyboard=True, resize_keyboard=True)
@@ -36,13 +51,16 @@ async def message_handler(update: Update, context: CallbackContext) -> None:
 
     elif context.user_data.get('state') == 'schedule_options':
         if text == 'Текущая точка':
-            await update.message.reply_text("Текущая точка:\n" + str(my_timetable_now(username)))
+            await update.message.reply_text(("Текущая точка:\n" + str(my_timetable_now(username))), reply_markup=ReplyKeyboardMarkup(my_schedule_keyboard, one_time_keyboard=True, resize_keyboard=True))
+            context.user_data['state'] = 'schedule_options'
 
         elif text == 'Дальнейшее расписание':
-            await update.message.reply_text(my_timetable_continue(username))
+            await update.message.reply_text(my_timetable_continue(username), reply_markup=ReplyKeyboardMarkup(my_schedule_keyboard, one_time_keyboard=True, resize_keyboard=True))
+            context.user_data['state'] = 'schedule_options'
 
         elif text == 'Все расписание':
-            await update.message.reply_text("Полное расписание:\n" + str(my_timetable_all(username)))
+            await update.message.reply_text("Полное расписание:\n" + str(my_timetable_all(username)), reply_markup=ReplyKeyboardMarkup(my_schedule_keyboard, one_time_keyboard=True, resize_keyboard=True))
+            context.user_data['state'] = 'schedule_options'
 
         else:
             await update.message.reply_text(
@@ -108,25 +126,31 @@ async def message_handler(update: Update, context: CallbackContext) -> None:
     elif context.user_data.get('state') == 'familia':
         familia = text
         if not timetable_by_familia(familia):
-            await update.message.reply_text('Такой фамилии нет в таблице, перепроверь введённые данные!')
+            await update.message.reply_text('Такой фамилии нет в таблице, перепроверь введённые данные!', reply_markup=ReplyKeyboardMarkup(organizers_info_keyboard, one_time_keyboard=True,
+                                                 resize_keyboard=True))
         else:
-            await update.message.reply_text(timetable_by_familia(familia))
+            await update.message.reply_text(timetable_by_familia(familia), reply_markup=ReplyKeyboardMarkup(organizers_info_keyboard, one_time_keyboard=True,
+                                                 resize_keyboard=True))
         context.user_data['state'] = 'orginizers'
 
     elif context.user_data.get('state') == 'username':
         username = text
         if not timetable_by_username(username):
-            await update.message.reply_text('Такого ника нет в таблице, перепроверь введённые данные!')
+            await update.message.reply_text('Такого ника нет в таблице, перепроверь введённые данные!', reply_markup=ReplyKeyboardMarkup(organizers_info_keyboard, one_time_keyboard=True,
+                                                 resize_keyboard=True))
         else:
-            await update.message.reply_text(timetable_by_username(username))
+            await update.message.reply_text(timetable_by_username(username), reply_markup=ReplyKeyboardMarkup(organizers_info_keyboard, one_time_keyboard=True,
+                                                 resize_keyboard=True))
         context.user_data['state'] = 'orginizers'
 
     elif context.user_data.get('state') == 'department':
         department = text
         if not timetable_department(department):
-            await update.message.reply_text('Такого отдела нет в таблице, перепроверь введённые данные!')
+            await update.message.reply_text('Такого отдела нет в таблице, перепроверь введённые данные!', reply_markup=ReplyKeyboardMarkup(organizers_schedule_keyboard, one_time_keyboard=True,
+                                                 resize_keyboard=True))
         else:
-            await update.message.reply_text(timetable_department(department))
+            await update.message.reply_text(timetable_department(department), reply_markup=ReplyKeyboardMarkup(organizers_schedule_keyboard, one_time_keyboard=True,
+                                                 resize_keyboard=True))
         context.user_data['state'] = 'schedule_orginizers_options'
 
     elif text == 'Информация об участнике':
@@ -155,25 +179,31 @@ async def message_handler(update: Update, context: CallbackContext) -> None:
     elif context.user_data.get('state') == 'participant_familia':
         familia = text
         if not info_by_familia(familia):
-            await update.message.reply_text('Такой фамилии нет в таблице, перепроверь введённые данные!')
+            await update.message.reply_text('Такой фамилии нет в таблице, перепроверь введённые данные!',reply_markup=ReplyKeyboardMarkup(participant_info_keyboard, one_time_keyboard=True,
+                                                 resize_keyboard=True))
         else:
-            await update.message.reply_text(info_by_familia(familia))
+            await update.message.reply_text(info_by_familia(familia), reply_markup=ReplyKeyboardMarkup(participant_info_keyboard, one_time_keyboard=True,
+                                                 resize_keyboard=True))
         context.user_data['state'] = 'info_participants_options'
 
     elif context.user_data.get('state') == 'participant_username':
         username = text
         if not info_by_username(username):
-            await update.message.reply_text('Такого ника нет в таблице, перепроверь введённые данные!')
+            await update.message.reply_text('Такого ника нет в таблице, перепроверь введённые данные!', reply_markup=ReplyKeyboardMarkup(participant_info_keyboard, one_time_keyboard=True,
+                                                 resize_keyboard=True))
         else:
-            await update.message.reply_text(info_by_username(username))
+            await update.message.reply_text(info_by_username(username), reply_markup=ReplyKeyboardMarkup(participant_info_keyboard, one_time_keyboard=True,
+                                                 resize_keyboard=True))
         context.user_data['state'] = 'info_participants_options'
 
     elif context.user_data.get('state') == 'room_num':
         room_num = text
         if info_by_room_num(room_num) == 0:
-            await update.message.reply_text('Такого номера комнаты нет в таблице, перепроверь введённые данные!')
+            await update.message.reply_text('Такого номера комнаты нет в таблице, перепроверь введённые данные!', reply_markup=ReplyKeyboardMarkup(participant_info_keyboard, one_time_keyboard=True,
+                                                 resize_keyboard=True))
         else:
-            await update.message.reply_text(info_by_room_num(room_num))
+            await update.message.reply_text(info_by_room_num(room_num), reply_markup=ReplyKeyboardMarkup(participant_info_keyboard, one_time_keyboard=True,
+                                                 resize_keyboard=True))
         context.user_data['state'] = 'info_participants_options'
 
     elif text == 'Назад':
@@ -184,24 +214,19 @@ async def message_handler(update: Update, context: CallbackContext) -> None:
     else:
         await update.message.reply_text("Команда не распознана.")
 
-
 # async def reminder_job(update: Update, context: CallbackContext) -> None:
 #     username = update.message.from_user.username
 #     if username in reminder_users:
-#         await update.message.reply_text(remainder(username))
-
+#         await update.message.reply_text(reminder(username))
 
 if __name__ == '__main__':
     application = ApplicationBuilder().token("7767795518:AAHyp07SVczH6joO3zD2_VbrtRZd24yzlqQ").build()
 
-    job_queue = JobQueue()
-    job_queue.set_application(application)
-
+    job_queue = application.job_queue
     # job_queue.run_repeating(reminder_job, interval=60)
 
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
 
-    job_queue.start()
 
     application.run_polling()

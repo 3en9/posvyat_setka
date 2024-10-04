@@ -6,7 +6,7 @@ today = dt.date()
 time = dt.time()
 
 
-df = pd.read_excel(r'C:\Users\Лиза\Downloads\Participants.xlsx', sheet_name = 'result')
+df = pd.read_excel(r'Participants.xlsx', sheet_name = 'result')
 n = 352 #количество значимых строк(кол-во участников)
 
 arr = df.to_numpy()

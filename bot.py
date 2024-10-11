@@ -220,7 +220,7 @@ async def message_handler(update: Update, context: CallbackContext) -> None:
 #         await update.message.reply_text(reminder(username))
 
 if __name__ == '__main__':
-    application = ApplicationBuilder().token("7767795518:AAHyp07SVczH6joO3zD2_VbrtRZd24yzlqQ").build()
+    application = ApplicationBuilder().token("").build()
 
     job_queue = application.job_queue
     # job_queue.run_repeating(reminder_job, interval=60)
